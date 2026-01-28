@@ -11,6 +11,6 @@ public class DidIGetRobbed implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Hello Fabric world!");
+		LOGGER.info("[DidIGetRobbed] Almost ready to protect your chests.");
 	}
 }
