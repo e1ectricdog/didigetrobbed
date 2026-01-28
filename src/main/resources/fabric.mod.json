@@ -7,7 +7,7 @@
 	"authors": [
 		"electricdog"
 	],
-	"license": "GPL-3.0",
+	"license": "CC0-1.0",
 	"icon": "assets/didigetrobbed/icon.png",
 	"environment": "*",
 	"entrypoints": {
