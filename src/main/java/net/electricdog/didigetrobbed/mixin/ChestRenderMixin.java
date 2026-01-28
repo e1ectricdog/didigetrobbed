@@ -181,27 +181,30 @@ public abstract class ChestRenderMixin {
                     .resolve("chests.json");
         }
 
-        if (client.getCurrentServerEntry() != null && client.world != null) {
+        if (client.getNetworkHandler() != null && client.world != null) {
             try {
-                String address = client.getCurrentServerEntry().address;
+                String address = "";
+                if (client.getCurrentServerEntry() != null) {
+                    address = client.getCurrentServerEntry().address;
+                } else {
+                    address = client.getNetworkHandler().getConnection().getAddress().toString();
+                }
 
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 byte[] hash = md.digest(address.getBytes(StandardCharsets.UTF_8));
-
                 String serverUid = new BigInteger(1, hash).toString(36).substring(0, 13);
 
-                String worldId = client.world.getRegistryKey().getValue().toString().replace(":", "@@");
-
-                String fileName = serverUid + "@" + worldId + ".json";
+                String worldName = client.world.getRegistryKey().getValue().toString().replace(":", "@@");
 
                 return client.runDirectory.toPath()
                         .resolve("didigetrobbed")
-                        .resolve(fileName);
+                        .resolve("multiplayer")
+                        .resolve(serverUid)
+                        .resolve(worldName + ".json");
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-
         // Fallback for weird edge cases
         return client.runDirectory.toPath()
                 .resolve("didigetrobbed")

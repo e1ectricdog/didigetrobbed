@@ -18,6 +18,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.math.BigInteger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -101,7 +104,6 @@ public abstract class ChestTrackerMixin {
 
     @Unique
     private Path didigetrobbed$getStoragePath(MinecraftClient client) {
-
         if (client.isInSingleplayer() && client.getServer() != null) {
             return client.getServer()
                     .getSavePath(WorldSavePath.ROOT)
@@ -109,17 +111,32 @@ public abstract class ChestTrackerMixin {
                     .resolve("chests.json");
         }
 
-        if (client.getCurrentServerEntry() != null) {
-            String serverAddress = client.getCurrentServerEntry().address;
-            String sanitized = serverAddress.replaceAll("[^a-zA-Z0-9._-]", "_");
-            return client.runDirectory.toPath()
-                    .resolve("didigetrobbed")
-                    .resolve("chests_" + sanitized + ".json");
+        if (client.getNetworkHandler() != null && client.world != null) {
+            try {
+                String address = "";
+                if (client.getCurrentServerEntry() != null) {
+                    address = client.getCurrentServerEntry().address;
+                } else {
+                    address = client.getNetworkHandler().getConnection().getAddress().toString();
+                }
+
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] hash = md.digest(address.getBytes(StandardCharsets.UTF_8));
+                String serverUid = new BigInteger(1, hash).toString(36).substring(0, 13);
+
+                String worldName = client.world.getRegistryKey().getValue().toString().replace(":", "@@");
+
+                return client.runDirectory.toPath()
+                        .resolve("didigetrobbed")
+                        .resolve("multiplayer")
+                        .resolve(serverUid)
+                        .resolve(worldName + ".json");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
-        return client.runDirectory.toPath()
-                .resolve("didigetrobbed")
-                .resolve("chests_local.json");
+        return client.runDirectory.toPath().resolve("didigetrobbed").resolve("chests_local.json");
     }
 
     @Unique
