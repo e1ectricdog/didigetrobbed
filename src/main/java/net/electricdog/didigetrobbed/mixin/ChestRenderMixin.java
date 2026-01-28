@@ -174,7 +174,6 @@ public abstract class ChestRenderMixin {
 
     @Unique
     private Path didigetrobbed$getStoragePath(MinecraftClient client) {
-
         if (client.isInSingleplayer() && client.getServer() != null) {
             return client.getServer()
                     .getSavePath(WorldSavePath.ROOT)
@@ -182,19 +181,28 @@ public abstract class ChestRenderMixin {
                     .resolve("chests.json");
         }
 
-        if (client.getCurrentServerEntry() != null) {
-            String serverAddress = client.getCurrentServerEntry().address;
+        if (client.getCurrentServerEntry() != null && client.world != null) {
+            try {
+                String address = client.getCurrentServerEntry().address;
 
-            String worldIdentifier = client.world.getRegistryKey().getValue().toString();
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] hash = md.digest(address.getBytes(StandardCharsets.UTF_8));
 
-            String rawIdentifier = serverAddress + "_" + worldIdentifier;
-            String sanitized = rawIdentifier.replaceAll("[^a-zA-Z0-9._-]", "_");
+                String serverUid = new BigInteger(1, hash).toString(36).substring(0, 13);
 
-            return client.runDirectory.toPath()
-                    .resolve("didigetrobbed")
-                    .resolve("chests_" + sanitized + ".json"); //
+                String worldId = client.world.getRegistryKey().getValue().toString().replace(":", "@@");
+
+                String fileName = serverUid + "@" + worldId + ".json";
+
+                return client.runDirectory.toPath()
+                        .resolve("didigetrobbed")
+                        .resolve(fileName);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
+        // Fallback for weird edge cases
         return client.runDirectory.toPath()
                 .resolve("didigetrobbed")
                 .resolve("chests_local.json");
