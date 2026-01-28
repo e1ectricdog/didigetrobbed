@@ -205,7 +205,6 @@ public abstract class ChestRenderMixin {
                 e.printStackTrace();
             }
         }
-        // Fallback for weird edge cases
         return client.runDirectory.toPath()
                 .resolve("didigetrobbed")
                 .resolve("chests_local.json");
