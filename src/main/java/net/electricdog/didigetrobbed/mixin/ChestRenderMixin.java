@@ -95,7 +95,11 @@ public abstract class ChestRenderMixin {
             int slotY = this.y + slot.y;
 
             context.drawItem(missingStack, slotX, slotY);
+
+            context.getMatrices().push();
+            context.getMatrices().translate(0, 0, 200);
             context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x88FF0000);
+            context.getMatrices().pop();
         }
     }
 
