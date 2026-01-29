@@ -33,6 +33,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Mixin(HandledScreen.class)
 public abstract class ChestRenderMixin {
@@ -104,9 +106,7 @@ public abstract class ChestRenderMixin {
         if (client.world == null || client.player == null) return missingItems;
 
         try {
-
             Path file = didigetrobbed$getStoragePath(client);
-
             if (!Files.exists(file)) return missingItems;
 
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
@@ -122,54 +122,152 @@ public abstract class ChestRenderMixin {
             int containerSlots = handler.slots.size() - 36;
             List<String> missingReport = new ArrayList<>();
 
+            Map<String, Integer> currentPool = new HashMap<>();
+            for (int i = 0; i < containerSlots; i++) {
+                ItemStack stack = handler.getSlot(i).getStack();
+                if (!stack.isEmpty()) {
+                    String identity = didigetrobbed$getItemIdentity(stack);
+                    currentPool.put(identity, currentPool.getOrDefault(identity, 0) + stack.getCount());
+                }
+            }
+
             for (JsonElement element : savedItems) {
                 JsonObject obj = element.getAsJsonObject();
-                if (!obj.has("slot")) continue;
-
-                int savedSlot = obj.get("slot").getAsInt();
-                String itemId = obj.get("id").getAsString();
+                String savedItemId = obj.get("id").getAsString();
                 int savedCount = obj.get("count").getAsInt();
+                int savedSlot = obj.get("slot").getAsInt();
+
+                String savedEnchants = obj.has("enchants") ? obj.get("enchants").getAsString() : "";
+                String savedIdentity = savedItemId + savedEnchants;
 
                 if (savedSlot >= containerSlots) continue;
 
-                Slot slot = handler.getSlot(savedSlot);
+                int amountInPool = currentPool.getOrDefault(savedIdentity, 0);
 
-                if (!slot.hasStack()) {
-                    Identifier id = Identifier.of(itemId);
-                    missingItems.put(savedSlot, new ItemStack(Registries.ITEM.get(id), savedCount));
-                    missingReport.add("§c- " + savedCount + "x " + Registries.ITEM.get(id).getName().getString());
+                if (amountInPool >= savedCount) {
+                    currentPool.put(savedIdentity, amountInPool - savedCount);
                 } else {
-                    ItemStack currentStack = slot.getStack();
-                    String currentItemId = Registries.ITEM.getId(currentStack.getItem()).toString();
-                    int currentCount = currentStack.getCount();
+                    int missingCount = savedCount - amountInPool;
+                    currentPool.put(savedIdentity, 0);
 
-                    if (currentItemId.equals(itemId)) {
-                        if (currentCount < savedCount) {
-                            int missing = savedCount - currentCount;
-                            Identifier id = Identifier.of(itemId);
-                            missingItems.put(savedSlot, new ItemStack(Registries.ITEM.get(id), missing));
-                            missingReport.add("§c- " + missing + "x " + Registries.ITEM.get(id).getName().getString());
+                    Identifier itemIdentifier = Identifier.of(savedItemId);
+                    ItemStack ghostStack = new ItemStack(Registries.ITEM.get(itemIdentifier), missingCount);
+
+                    StringBuilder reportLine = new StringBuilder("§c- ").append(missingCount).append("x ").append(ghostStack.getName().getString());
+
+                    if (!savedEnchants.isEmpty()) {
+                        String formattedEnchants = didigetrobbed$formatEnchantments(savedEnchants);
+                        if (!formattedEnchants.isEmpty()) {
+                            reportLine.append(" §7").append(formattedEnchants);
                         }
-                    } else {
-                        Identifier id = Identifier.of(itemId);
-                        missingItems.put(savedSlot, new ItemStack(Registries.ITEM.get(id), savedCount));
-                        missingReport.add("§c- " + savedCount + "x " + Registries.ITEM.get(id).getName().getString());
                     }
+
+                    missingItems.put(savedSlot, ghostStack);
+                    missingReport.add(reportLine.toString());
                 }
             }
 
             if (!missingReport.isEmpty()) {
-                client.player.sendMessage(Text.literal("§6[DidIGetRobbed] §fItems missing from " + containerName + ":"), false);
-                for (String line : missingReport) {
-                    client.player.sendMessage(Text.literal(line), false);
-                }
+                client.player.sendMessage(Text.literal("§6[DidIGetRobbed] §fItems missing:"), false);
+                for (String line : missingReport) client.player.sendMessage(Text.literal(line), false);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return missingItems;
+    }
+
+    @Unique
+    private String didigetrobbed$formatEnchantments(String enchantsString) {
+        if (enchantsString == null || enchantsString.isEmpty()) {
+            return "";
+        }
+
+        Pattern pattern = Pattern.compile("minecraft:enchantment\\s*/\\s*minecraft:([a-z_]+)\\].*?=>?(\\d+)");
+        Matcher matcher = pattern.matcher(enchantsString);
+
+        List<String> formattedEnchants = new ArrayList<>();
+
+        while (matcher.find()) {
+            String enchantName = matcher.group(1);
+            String level = matcher.group(2);
+
+            String readableName = didigetrobbed$toTitleCase(enchantName);
+
+            String readableLevel = didigetrobbed$toRomanNumeral(Integer.parseInt(level));
+
+            formattedEnchants.add(readableName + " " + readableLevel);
+        }
+
+        if (formattedEnchants.isEmpty()) {
+            Pattern oldPattern = Pattern.compile("minecraft:([a-z_]+)=(\\d+)");
+            Matcher oldMatcher = oldPattern.matcher(enchantsString);
+
+            while (oldMatcher.find()) {
+                String enchantName = oldMatcher.group(1);
+                String level = oldMatcher.group(2);
+
+                String readableName = didigetrobbed$toTitleCase(enchantName);
+                String readableLevel = didigetrobbed$toRomanNumeral(Integer.parseInt(level));
+
+                formattedEnchants.add(readableName + " " + readableLevel);
+            }
+        }
+
+        if (formattedEnchants.isEmpty()) {
+            return "";
+        }
+
+        return "(" + String.join(", ", formattedEnchants) + ")";
+    }
+
+    @Unique
+    private String didigetrobbed$toTitleCase(String snakeCase) {
+        String[] words = snakeCase.split("_");
+        StringBuilder result = new StringBuilder();
+
+        for (String word : words) {
+            if (word.length() > 0) {
+                result.append(Character.toUpperCase(word.charAt(0)));
+                if (word.length() > 1) {
+                    result.append(word.substring(1));
+                }
+                result.append(" ");
+            }
+        }
+
+        return result.toString().trim();
+    }
+
+    @Unique
+    private String didigetrobbed$toRomanNumeral(int number) {
+        switch (number) {
+            case 1: return "I";
+            case 2: return "II";
+            case 3: return "III";
+            case 4: return "IV";
+            case 5: return "V";
+            case 6: return "VI";
+            case 7: return "VII";
+            case 8: return "VIII";
+            case 9: return "IX";
+            case 10: return "X";
+            default: return String.valueOf(number);
+        }
+    }
+
+    @Unique
+    private String didigetrobbed$getItemIdentity(ItemStack stack) {
+        String id = Registries.ITEM.getId(stack.getItem()).toString();
+
+        var enchants = stack.getEnchantments();
+
+        if (enchants.isEmpty()) {
+            return id;
+        }
+
+        return id + enchants.toString();
     }
 
     @Unique

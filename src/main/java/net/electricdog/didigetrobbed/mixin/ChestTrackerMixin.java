@@ -54,12 +54,8 @@ public abstract class ChestTrackerMixin {
         if (client.world == null) return;
 
         try {
-
             Path file = didigetrobbed$getStoragePath(client);
-
-            if (file.getParent() != null) {
-                Files.createDirectories(file.getParent());
-            }
+            if (file.getParent() != null) Files.createDirectories(file.getParent());
 
             JsonObject root;
             if (Files.exists(file)) {
@@ -85,13 +81,21 @@ public abstract class ChestTrackerMixin {
                 if (slot.hasStack()) {
                     ItemStack stack = slot.getStack();
                     JsonObject obj = new JsonObject();
+
                     obj.addProperty("slot", i);
                     obj.addProperty("id", Registries.ITEM.getId(stack.getItem()).toString());
                     obj.addProperty("count", stack.getCount());
+
+                    var enchants = stack.getEnchantments();
+                    if (!enchants.isEmpty()) {
+                        obj.addProperty("enchants", enchants.toString());
+                    } else {
+                        obj.addProperty("enchants", "");
+                    }
+
                     contents.add(obj);
                 }
             }
-
             chest.add("items", contents);
             root.add(chestId, chest);
 
