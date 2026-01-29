@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "net.electricdog.didigetrobbed.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ChestInteractMixin",
+    "ChestTrackerMixin",
+    "ChestRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

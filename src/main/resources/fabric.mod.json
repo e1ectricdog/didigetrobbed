@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "didigetrobbed",
+	"version": "${version}",
+	"name": "DidIGetRobbed",
+	"description": "Displays a chat log and visual overlay if previously opened chest items are missing.",
+	"authors": [
+		"electricdog"
+	],
+	"license": "CC0-1.0",
+	"icon": "assets/didigetrobbed/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.electricdog.didigetrobbed.DidIGetRobbed"
+		],
+		"fabric-datagen": [
+			"net.electricdog.didigetrobbed.DidIGetRobbedDataGenerator"
+		],
+        "client": [
+          "net.electricdog.didigetrobbed.DidIGetRobbedClient"
+        ]
+	},
+	"mixins": [
+		"didigetrobbed.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.5",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
