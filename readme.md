@@ -4,7 +4,6 @@ A Minecraft Fabric mod that helps you detect if items are missing from your ches
 
 ## Features
 
-- **Missing Item Detection**: Alerts you when items are missing from previously opened containers
 - **Visual Overlay**: Shows ghost items in slots where items are missing
 - **Chat Notifications**: Displays a detailed list of missing items in chat with enchantment support
 - **Multi-World Support**: Works in multiplayer and singleplayer (because feeling protected on singleplayer is important!)
@@ -24,4 +23,6 @@ The mod stores chest data in JSON files:
 ```
 
 ## Known Issues / Limitations
-- Double chests are tracked as a single container 
+- Double chests are tracked as a single container
+- Some component data isn't supported yet
+- Ghost items don't display the item count
