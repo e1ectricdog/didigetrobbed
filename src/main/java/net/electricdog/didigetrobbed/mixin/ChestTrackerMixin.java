@@ -2,6 +2,7 @@ package net.electricdog.didigetrobbed.mixin;
 
 import com.google.gson.*;
 import net.electricdog.didigetrobbed.ChestContext;
+import net.electricdog.didigetrobbed.ChestUtils;
 import net.electricdog.didigetrobbed.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
@@ -53,6 +54,10 @@ public abstract class ChestTrackerMixin {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.world == null) return;
 
+        BlockPos[] positions = ChestUtils.getChestPositionsForCleanup(pos, client.world);
+        BlockPos normalizedPos = positions[0];
+        BlockPos posToCleanup = positions[1];
+
         try {
             Path file = didigetrobbed$getStoragePath(client);
             if (file.getParent() != null) Files.createDirectories(file.getParent());
@@ -69,7 +74,15 @@ public abstract class ChestTrackerMixin {
             }
 
             String world = client.world.getRegistryKey().getValue().toString();
-            String chestId = world + "@" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+            String chestId = world + "@" + normalizedPos.getX() + "," + normalizedPos.getY() + "," + normalizedPos.getZ();
+
+            if (posToCleanup != null && !posToCleanup.equals(normalizedPos)) {
+                String oldChestId = world + "@" + posToCleanup.getX() + "," + posToCleanup.getY() + "," + posToCleanup.getZ();
+                if (root.has(oldChestId)) {
+                    root.remove(oldChestId);
+                    System.out.println("[DidIGetRobbed] Cleaned up redundant chest entry at " + oldChestId);
+                }
+            }
 
             JsonObject chest = new JsonObject();
             chest.addProperty("last_seen_name", name);
@@ -117,7 +130,7 @@ public abstract class ChestTrackerMixin {
 
         if (client.getNetworkHandler() != null && client.world != null) {
             try {
-                String address = "";
+                String address;
                 if (client.getCurrentServerEntry() != null) {
                     address = client.getCurrentServerEntry().address;
                 } else {
@@ -150,8 +163,6 @@ public abstract class ChestTrackerMixin {
 
         if (config.trackChests && lower.contains("chest")) return true;
         if (config.trackBarrels && lower.contains("barrel")) return true;
-        if (config.trackShulkerBoxes && (lower.contains("shulker") || lower.contains("box"))) return true;
-
-        return false;
+        return config.trackShulkerBoxes && (lower.contains("shulker") || lower.contains("box"));
     }
 }
