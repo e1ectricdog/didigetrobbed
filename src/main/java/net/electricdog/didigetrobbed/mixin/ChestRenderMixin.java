@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.electricdog.didigetrobbed.ChestContext;
+import net.electricdog.didigetrobbed.ChestUtils;
 import net.electricdog.didigetrobbed.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -106,6 +107,8 @@ public abstract class ChestRenderMixin {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.world == null || client.player == null) return missingItems;
 
+        pos = ChestUtils.normalizeChestPos(pos, client.world);
+
         try {
             Path file = didigetrobbed$getStoragePath(client);
             if (!Files.exists(file)) return missingItems;
@@ -116,10 +119,18 @@ public abstract class ChestRenderMixin {
 
             if (!root.has(chestId)) return missingItems;
 
-            JsonObject chest = root.getAsJsonObject(chestId);
+            JsonElement chestElement = root.get(chestId);
+            if (chestElement == null || !chestElement.isJsonObject()) return missingItems;
+
+            JsonObject chest = chestElement.getAsJsonObject();
             if (!chest.has("items")) return missingItems;
 
-            JsonArray savedItems = chest.getAsJsonArray("items");
+            JsonElement itemsElement = chest.get("items");
+            if (itemsElement == null || !itemsElement.isJsonArray()) return missingItems;
+
+            JsonArray savedItems = itemsElement.getAsJsonArray();
+            if (savedItems == null || savedItems.isEmpty()) return missingItems;
+
             int containerSlots = handler.slots.size() - 36;
             List<String> missingReport = new ArrayList<>();
 
@@ -133,7 +144,11 @@ public abstract class ChestRenderMixin {
             }
 
             for (JsonElement element : savedItems) {
+                if (element == null || !element.isJsonObject()) continue;
+
                 JsonObject obj = element.getAsJsonObject();
+                if (!obj.has("id") || !obj.has("count") || !obj.has("slot")) continue;
+
                 String savedItemId = obj.get("id").getAsString();
                 int savedCount = obj.get("count").getAsInt();
                 int savedSlot = obj.get("slot").getAsInt();

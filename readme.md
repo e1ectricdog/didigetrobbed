@@ -23,6 +23,5 @@ The mod stores chest data in JSON files:
 ```
 
 ## Known Issues / Limitations
-- Double chests are tracked as a single container
 - Some component data isn't supported yet
 - Ghost items don't display the item count
