@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.electricdog.didigetrobbed.ChestContext;
+import net.electricdog.didigetrobbed.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
@@ -310,10 +311,13 @@ public abstract class ChestRenderMixin {
 
     @Unique
     private boolean didigetrobbed$isStorageContainer(String title) {
+        Config config = Config.getInstance();
         String lower = title.toLowerCase();
-        return lower.contains("chest") ||
-                lower.contains("barrel") ||
-                lower.contains("shulker") ||
-                lower.contains("box");
+
+        if (config.trackChests && lower.contains("chest")) return true;
+        if (config.trackBarrels && lower.contains("barrel")) return true;
+        if (config.trackShulkerBoxes && (lower.contains("shulker") || lower.contains("box"))) return true;
+
+        return false;
     }
 }

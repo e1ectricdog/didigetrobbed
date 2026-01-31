@@ -2,6 +2,7 @@ package net.electricdog.didigetrobbed.mixin;
 
 import com.google.gson.*;
 import net.electricdog.didigetrobbed.ChestContext;
+import net.electricdog.didigetrobbed.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.item.ItemStack;
@@ -16,7 +17,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -145,10 +145,13 @@ public abstract class ChestTrackerMixin {
 
     @Unique
     private boolean didigetrobbed$isStorageContainer(String title) {
+        Config config = Config.getInstance();
         String lower = title.toLowerCase();
-        return lower.contains("chest") ||
-                lower.contains("barrel") ||
-                lower.contains("shulker") ||
-                lower.contains("box");
+
+        if (config.trackChests && lower.contains("chest")) return true;
+        if (config.trackBarrels && lower.contains("barrel")) return true;
+        if (config.trackShulkerBoxes && (lower.contains("shulker") || lower.contains("box"))) return true;
+
+        return false;
     }
 }
