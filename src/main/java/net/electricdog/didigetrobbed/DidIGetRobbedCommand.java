@@ -15,14 +15,11 @@ public class DidIGetRobbedCommand {
     }
 
     private static void registerCommand(
-            CommandDispatcher<FabricClientCommandSource> dispatcher,
-            CommandRegistryAccess registryAccess) {
+        CommandDispatcher<FabricClientCommandSource> dispatcher,
+        CommandRegistryAccess registryAccess) {
 
-        dispatcher.register(literal("didigetrobbed")
-                .executes(context -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    client.execute(() -> client.setScreen(new ConfigScreen(client.currentScreen)));
-                    return 1;
-                }));
+        dispatcher.register(literal("didigetrobbed").executes(context -> {MinecraftClient client = MinecraftClient.getInstance();client.execute(() -> client.setScreen(new ConfigScreen(client.currentScreen)));
+            return 1;
+        }));
     }
 }
