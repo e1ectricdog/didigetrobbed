@@ -8,8 +8,7 @@ public class DidIGetRobbedClient implements ClientModInitializer {
     public void onInitializeClient() {
         Config.getInstance();
 
-        // the screen broke and only works in 1.21.11 so can't be bothered to fix it rn
-        // DidIGetRobbedCommand.register();
+        DidIGetRobbedCommand.register();
 
         System.out.println("[DidIGetRobbed] Client initialized");
     }
