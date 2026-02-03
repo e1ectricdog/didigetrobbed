@@ -49,6 +49,8 @@ public abstract class ChestRenderMixin {
     @Unique private boolean didigetrobbed$hasChecked = false;
     @Unique private BlockPos didigetrobbed$currentChestPos = null;
     @Unique private String didigetrobbed$currentChestName = null;
+    @Unique private int didigetrobbed$ticksWaited = 0;
+    @Unique private static final int TICKS_TO_WAIT = 10;
 
     @Inject(method = "init", at = @At("TAIL"))
     private void onScreenInit(CallbackInfo ci) {
@@ -57,6 +59,7 @@ public abstract class ChestRenderMixin {
 
         didigetrobbed$hasChecked = false;
         didigetrobbed$missingItems = null;
+        didigetrobbed$ticksWaited = 0;
 
         if (!didigetrobbed$isStorageContainer(title)) {
             didigetrobbed$currentChestPos = null;
@@ -78,8 +81,12 @@ public abstract class ChestRenderMixin {
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!didigetrobbed$hasChecked && didigetrobbed$currentChestPos != null) {
-            didigetrobbed$hasChecked = true;
-            didigetrobbed$missingItems = didigetrobbed$loadMissingItems(didigetrobbed$currentChestPos, didigetrobbed$currentChestName);
+            didigetrobbed$ticksWaited++;
+
+            if (didigetrobbed$ticksWaited >= TICKS_TO_WAIT && didigetrobbed$isInventoryLoaded()) {
+                didigetrobbed$hasChecked = true;
+                didigetrobbed$missingItems = didigetrobbed$loadMissingItems(didigetrobbed$currentChestPos, didigetrobbed$currentChestName);
+            }
         }
 
         if (didigetrobbed$missingItems == null || didigetrobbed$missingItems.isEmpty()) return;
@@ -102,6 +109,21 @@ public abstract class ChestRenderMixin {
             context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x88FF0000);
             context.getMatrices().pop();
         }
+    }
+
+    @Unique
+    private boolean didigetrobbed$isInventoryLoaded() {
+
+        int containerSlots = handler.slots.size() - 36;
+        if (containerSlots <= 0) return false;
+
+        for (int i = 0; i < containerSlots; i++) {
+            if (handler.getSlot(i).hasStack()) {
+                return true;
+            }
+        }
+
+        return didigetrobbed$ticksWaited >= TICKS_TO_WAIT * 2;
     }
 
     @Unique
