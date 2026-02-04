@@ -96,7 +96,7 @@ public class DidIGetRobbedCommand {
         MutableText statusText = Text.literal("[" + (currentValue ? "True" : "False") + "]")
                 .formatted(currentValue ? Formatting.GREEN : Formatting.RED, Formatting.BOLD)
                 .styled(style -> style
-                        .withClickEvent(new ClickEvent.RunCommand(command))
+                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
                 );
 
         return text.append(statusText);
