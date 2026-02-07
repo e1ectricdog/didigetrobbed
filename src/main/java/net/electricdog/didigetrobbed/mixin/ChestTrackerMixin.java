@@ -45,8 +45,41 @@ public abstract class ChestTrackerMixin {
         int containerSlots = totalSlots - 36;
         if (containerSlots <= 0) return;
 
-        didigetrobbed$saveChest(pos, title, containerSlots);
+        if (didigetrobbed$isChestTracked(pos)) {
+            didigetrobbed$saveChest(pos, title, containerSlots);
+        }
+
         ChestContext.setLastContainerPos(null);
+    }
+
+    @Unique
+    private boolean didigetrobbed$isChestTracked(BlockPos pos) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null) return false;
+
+        pos = ChestUtils.normalizeChestPos(pos, client.world);
+
+        try {
+            Path file = didigetrobbed$getStoragePath(client);
+            if (!Files.exists(file)) return Config.getInstance().trackAllChestsByDefault;
+
+            JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+            String world = client.world.getRegistryKey().getValue().toString();
+            String chestId = world + "@" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+
+            if (!root.has(chestId)) return Config.getInstance().trackAllChestsByDefault;
+
+            JsonElement chestElement = root.get(chestId);
+            if (chestElement == null || !chestElement.isJsonObject()) return Config.getInstance().trackAllChestsByDefault;
+
+            JsonObject chest = chestElement.getAsJsonObject();
+            if (!chest.has("tracking_enabled")) return Config.getInstance().trackAllChestsByDefault;
+
+            return chest.get("tracking_enabled").getAsBoolean();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Config.getInstance().trackAllChestsByDefault;
+        }
     }
 
     @Unique
@@ -84,7 +117,14 @@ public abstract class ChestTrackerMixin {
                 }
             }
 
-            JsonObject chest = new JsonObject();
+            JsonObject chest;
+            if (root.has(chestId)) {
+                chest = root.get(chestId).getAsJsonObject();
+            } else {
+                chest = new JsonObject();
+                chest.addProperty("tracking_enabled", Config.getInstance().trackAllChestsByDefault);
+            }
+
             chest.addProperty("last_seen_name", name);
             chest.addProperty("timestamp", System.currentTimeMillis());
 
