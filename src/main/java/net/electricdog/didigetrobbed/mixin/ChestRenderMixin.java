@@ -9,7 +9,7 @@ import net.electricdog.didigetrobbed.ChestUtils;
 import net.electricdog.didigetrobbed.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -137,10 +137,7 @@ public abstract class ChestRenderMixin {
                 int slotY = this.y + slot.y;
 
                 context.drawItem(missingStack, slotX, slotY);
-                context.getMatrices().push();
-                context.getMatrices().translate(0, 0, 200);
                 context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x88FF0000);
-                context.getMatrices().pop();
             }
         }
 
@@ -152,7 +149,7 @@ public abstract class ChestRenderMixin {
             int buttonY = this.y + lastSlot.y;
 
             Identifier icon = didigetrobbed$isTracking ? ICON_GREEN : ICON_RED;
-            context.drawTexture(RenderLayer::getGuiTextured, icon, buttonX, buttonY, 0, 0, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, icon, buttonX, buttonY, 0.0f, 0.0f, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE);
         }
     }
 
