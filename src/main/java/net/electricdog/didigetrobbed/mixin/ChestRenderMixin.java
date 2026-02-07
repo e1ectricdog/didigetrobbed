@@ -24,6 +24,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.util.WorldSavePath;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -44,6 +45,8 @@ public abstract class ChestRenderMixin {
     @Shadow @Final protected ScreenHandler handler;
     @Shadow protected int x;
     @Shadow protected int y;
+    @Shadow protected int backgroundWidth;
+    @Shadow protected int backgroundHeight;
 
     @Unique private Map<Integer, ItemStack> didigetrobbed$missingItems = null;
     @Unique private boolean didigetrobbed$hasChecked = false;
@@ -51,6 +54,13 @@ public abstract class ChestRenderMixin {
     @Unique private String didigetrobbed$currentChestName = null;
     @Unique private int didigetrobbed$ticksWaited = 0;
     @Unique private static final int TICKS_TO_WAIT = 10;
+    @Unique private boolean didigetrobbed$isTracking = false;
+
+    @Unique private static final int BUTTON_SIZE = 16;
+    @Unique private static final int BUTTON_MARGIN = 4;
+
+    @Unique private static final Identifier ICON_GREEN = Identifier.of("didigetrobbed", "textures/gui/icon-green.png");
+    @Unique private static final Identifier ICON_RED = Identifier.of("didigetrobbed", "textures/gui/icon-red.png");
 
     @Inject(method = "init", at = @At("TAIL"))
     private void onScreenInit(CallbackInfo ci) {
@@ -64,6 +74,7 @@ public abstract class ChestRenderMixin {
         if (!didigetrobbed$isStorageContainer(title)) {
             didigetrobbed$currentChestPos = null;
             didigetrobbed$currentChestName = null;
+            didigetrobbed$isTracking = false;
             return;
         }
 
@@ -71,16 +82,18 @@ public abstract class ChestRenderMixin {
         if (pos == null) {
             didigetrobbed$currentChestPos = null;
             didigetrobbed$currentChestName = null;
+            didigetrobbed$isTracking = false;
             return;
         }
 
         didigetrobbed$currentChestPos = pos;
         didigetrobbed$currentChestName = title;
+        didigetrobbed$isTracking = didigetrobbed$getChestTrackingState(pos);
     }
 
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        if (!didigetrobbed$hasChecked && didigetrobbed$currentChestPos != null) {
+        if (!didigetrobbed$hasChecked && didigetrobbed$currentChestPos != null && didigetrobbed$isTracking) {
             didigetrobbed$ticksWaited++;
 
             if (didigetrobbed$ticksWaited >= TICKS_TO_WAIT && didigetrobbed$isInventoryLoaded()) {
@@ -89,28 +102,148 @@ public abstract class ChestRenderMixin {
             }
         }
 
-        if (didigetrobbed$missingItems == null || didigetrobbed$missingItems.isEmpty()) return;
+        if (didigetrobbed$missingItems != null && !didigetrobbed$missingItems.isEmpty()) {
+            for (Map.Entry<Integer, ItemStack> entry : didigetrobbed$missingItems.entrySet()) {
+                int slotIndex = entry.getKey();
+                ItemStack missingStack = entry.getValue();
 
-        for (Map.Entry<Integer, ItemStack> entry : didigetrobbed$missingItems.entrySet()) {
-            int slotIndex = entry.getKey();
-            ItemStack missingStack = entry.getValue();
+                if (slotIndex >= handler.slots.size()) continue;
 
-            if (slotIndex >= handler.slots.size()) continue;
+                Slot slot = handler.getSlot(slotIndex);
+                if (slot.hasStack()) continue;
 
-            Slot slot = handler.getSlot(slotIndex);
-            if (slot.hasStack()) continue;
+                int slotX = this.x + slot.x;
+                int slotY = this.y + slot.y;
 
-            int slotX = this.x + slot.x;
-            int slotY = this.y + slot.y;
+                context.drawItem(missingStack, slotX, slotY);
+                context.getMatrices().push();
+                context.getMatrices().translate(0, 0, 200);
+                context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x88FF0000);
+                context.getMatrices().pop();
+            }
+        }
 
-            context.drawItem(missingStack, slotX, slotY);
-            context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x88FF0000);
+        if (didigetrobbed$currentChestPos != null) {
+            int containerSlots = handler.slots.size() - 36;
+            Slot lastSlot = handler.getSlot(containerSlots - 1);
+
+            int buttonX = this.x - BUTTON_MARGIN - BUTTON_SIZE;
+            int buttonY = this.y + lastSlot.y;
+
+            Identifier icon = didigetrobbed$isTracking ? ICON_GREEN : ICON_RED;
+            context.drawTexture(icon, buttonX, buttonY, 0, 0, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE);
+        }
+    }
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+        if (didigetrobbed$currentChestPos == null) return;
+
+        int containerSlots = handler.slots.size() - 36;
+        Slot lastSlot = handler.getSlot(containerSlots - 1);
+
+        int buttonX = this.x - BUTTON_MARGIN - BUTTON_SIZE;
+        int buttonY = this.y + lastSlot.y;
+
+        if (mouseX >= buttonX && mouseX <= buttonX + BUTTON_SIZE &&
+                mouseY >= buttonY && mouseY <= buttonY + BUTTON_SIZE) {
+
+            if (button == 0) {
+                didigetrobbed$toggleTracking();
+                cir.setReturnValue(true);
+            }
+        }
+    }
+
+    @Unique
+    private void didigetrobbed$toggleTracking() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || didigetrobbed$currentChestPos == null) return;
+
+        didigetrobbed$isTracking = !didigetrobbed$isTracking;
+        didigetrobbed$setChestTrackingState(didigetrobbed$currentChestPos, didigetrobbed$isTracking);
+
+        if (didigetrobbed$isTracking) {
+            client.player.sendMessage(Text.literal("§a[DidIGetRobbed] §fTracking enabled for this container"), false);
+        } else {
+            client.player.sendMessage(Text.literal("§c[DidIGetRobbed] §fTracking disabled for this container"), false);
+            didigetrobbed$missingItems = null;
+        }
+    }
+
+    @Unique
+    private boolean didigetrobbed$getChestTrackingState(BlockPos pos) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null) return Config.getInstance().trackAllChestsByDefault;
+
+        pos = ChestUtils.normalizeChestPos(pos, client.world);
+
+        try {
+            Path file = didigetrobbed$getStoragePath(client);
+            if (!Files.exists(file)) return Config.getInstance().trackAllChestsByDefault;
+
+            JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+            String world = client.world.getRegistryKey().getValue().toString();
+            String chestId = world + "@" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+
+            if (!root.has(chestId)) return Config.getInstance().trackAllChestsByDefault;
+
+            JsonElement chestElement = root.get(chestId);
+            if (chestElement == null || !chestElement.isJsonObject()) return Config.getInstance().trackAllChestsByDefault;
+
+            JsonObject chest = chestElement.getAsJsonObject();
+            if (!chest.has("tracking_enabled")) return Config.getInstance().trackAllChestsByDefault;
+
+            return chest.get("tracking_enabled").getAsBoolean();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Config.getInstance().trackAllChestsByDefault;
+        }
+    }
+
+    @Unique
+    private void didigetrobbed$setChestTrackingState(BlockPos pos, boolean enabled) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null) return;
+
+        pos = ChestUtils.normalizeChestPos(pos, client.world);
+
+        try {
+            Path file = didigetrobbed$getStoragePath(client);
+            if (file.getParent() != null) Files.createDirectories(file.getParent());
+
+            JsonObject root;
+            if (Files.exists(file)) {
+                try {
+                    root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+                } catch (Exception e) {
+                    root = new JsonObject();
+                }
+            } else {
+                root = new JsonObject();
+            }
+
+            String world = client.world.getRegistryKey().getValue().toString();
+            String chestId = world + "@" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+
+            JsonObject chest;
+            if (root.has(chestId)) {
+                chest = root.get(chestId).getAsJsonObject();
+            } else {
+                chest = new JsonObject();
+            }
+
+            chest.addProperty("tracking_enabled", enabled);
+            root.add(chestId, chest);
+
+            Files.writeString(file, root.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     @Unique
     private boolean didigetrobbed$isInventoryLoaded() {
-
         int containerSlots = handler.slots.size() - 36;
         if (containerSlots <= 0) return false;
 
@@ -232,7 +365,6 @@ public abstract class ChestRenderMixin {
             String level = matcher.group(2);
 
             String readableName = didigetrobbed$toTitleCase(enchantName);
-
             String readableLevel = didigetrobbed$toRomanNumeral(Integer.parseInt(level));
 
             formattedEnchants.add(readableName + " " + readableLevel);
@@ -298,7 +430,6 @@ public abstract class ChestRenderMixin {
     @Unique
     private String didigetrobbed$getItemIdentity(ItemStack stack) {
         String id = Registries.ITEM.getId(stack.getItem()).toString();
-
         var enchants = stack.getEnchantments();
 
         if (enchants.isEmpty()) {
