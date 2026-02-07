@@ -9,6 +9,7 @@ import net.electricdog.didigetrobbed.ChestUtils;
 import net.electricdog.didigetrobbed.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -151,7 +152,7 @@ public abstract class ChestRenderMixin {
             int buttonY = this.y + lastSlot.y;
 
             Identifier icon = didigetrobbed$isTracking ? ICON_GREEN : ICON_RED;
-            context.drawTexture(icon, buttonX, buttonY, 0, 0, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE);
+            context.drawTexture(RenderLayer::getGuiTextured, icon, buttonX, buttonY, 0, 0, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE);
         }
     }
 
