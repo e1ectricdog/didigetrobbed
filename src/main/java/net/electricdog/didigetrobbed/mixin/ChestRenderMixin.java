@@ -8,6 +8,7 @@ import net.electricdog.didigetrobbed.ChestContext;
 import net.electricdog.didigetrobbed.ChestUtils;
 import net.electricdog.didigetrobbed.Config;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
@@ -154,7 +155,7 @@ public abstract class ChestRenderMixin {
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseClicked(Click click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
         if (didigetrobbed$currentChestPos == null) return;
 
         int containerSlots = handler.slots.size() - 36;
@@ -162,6 +163,10 @@ public abstract class ChestRenderMixin {
 
         int buttonX = this.x - BUTTON_MARGIN - BUTTON_SIZE;
         int buttonY = this.y + lastSlot.y;
+
+        double mouseX = click.x();
+        double mouseY = click.y();
+        int button = click.button();
 
         if (mouseX >= buttonX && mouseX <= buttonX + BUTTON_SIZE &&
                 mouseY >= buttonY && mouseY <= buttonY + BUTTON_SIZE) {
