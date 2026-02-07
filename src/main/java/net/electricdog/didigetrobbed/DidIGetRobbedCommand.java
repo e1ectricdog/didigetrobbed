@@ -57,6 +57,15 @@ public class DidIGetRobbedCommand {
                                     showCurrentSettings(context);
                                     return 1;
                                 })))
+                .then(literal("trackAllContainersByDefault")
+                        .then(argument("enabled", BoolArgumentType.bool())
+                                .executes(context -> {
+                                    boolean enabled = BoolArgumentType.getBool(context, "enabled");
+                                    Config.getInstance().trackAllChestsByDefault = enabled;
+                                    Config.getInstance().save();
+                                    showCurrentSettings(context);
+                                    return 1;
+                                })))
         );
     }
 
@@ -84,6 +93,12 @@ public class DidIGetRobbedCommand {
                 "Track Shulker Boxes",
                 config.trackShulkerBoxes,
                 "trackShulkerBoxes"
+        ));
+
+        context.getSource().sendFeedback(createClickableOption(
+                "Track All Containers By Default",
+                config.trackAllChestsByDefault,
+                "trackAllContainersByDefault"
         ));
     }
 
