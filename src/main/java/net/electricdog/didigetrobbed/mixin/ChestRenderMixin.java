@@ -53,7 +53,7 @@ public abstract class ChestRenderMixin {
     @Unique private BlockPos didigetrobbed$currentChestPos = null;
     @Unique private String didigetrobbed$currentChestName = null;
     @Unique private int didigetrobbed$ticksWaited = 0;
-    @Unique private static final int TICKS_TO_WAIT = 10;
+    @Unique private static final int TICKS_TO_WAIT = 5;
     @Unique private boolean didigetrobbed$isTracking = false;
 
     @Unique private static final int BUTTON_SIZE = 16;
@@ -91,12 +91,32 @@ public abstract class ChestRenderMixin {
         didigetrobbed$isTracking = didigetrobbed$getChestTrackingState(pos);
     }
 
+    @Unique
+    private boolean didigetrobbed$isAnyItemPresent() {
+        int containerSlots = handler.slots.size() - 36;
+        if (containerSlots <= 0) return false;
+
+        for (int i = 0; i < containerSlots; i++) {
+            if (handler.getSlot(i).hasStack()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!didigetrobbed$hasChecked && didigetrobbed$currentChestPos != null && didigetrobbed$isTracking) {
             didigetrobbed$ticksWaited++;
 
-            if (didigetrobbed$ticksWaited >= TICKS_TO_WAIT && didigetrobbed$isInventoryLoaded()) {
+            boolean anyItemPresent = didigetrobbed$isAnyItemPresent();
+
+            if (anyItemPresent && didigetrobbed$ticksWaited >= 1) {
+                didigetrobbed$hasChecked = true;
+                didigetrobbed$missingItems = didigetrobbed$loadMissingItems(didigetrobbed$currentChestPos, didigetrobbed$currentChestName);
+            }
+
+            else if (didigetrobbed$ticksWaited >= TICKS_TO_WAIT * 2) {
                 didigetrobbed$hasChecked = true;
                 didigetrobbed$missingItems = didigetrobbed$loadMissingItems(didigetrobbed$currentChestPos, didigetrobbed$currentChestName);
             }
@@ -244,16 +264,7 @@ public abstract class ChestRenderMixin {
 
     @Unique
     private boolean didigetrobbed$isInventoryLoaded() {
-        int containerSlots = handler.slots.size() - 36;
-        if (containerSlots <= 0) return false;
-
-        for (int i = 0; i < containerSlots; i++) {
-            if (handler.getSlot(i).hasStack()) {
-                return true;
-            }
-        }
-
-        return didigetrobbed$ticksWaited >= TICKS_TO_WAIT * 2;
+        return didigetrobbed$isAnyItemPresent();
     }
 
     @Unique
