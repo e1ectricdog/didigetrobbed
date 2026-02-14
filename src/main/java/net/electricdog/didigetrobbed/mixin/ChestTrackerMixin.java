@@ -201,6 +201,8 @@ public abstract class ChestTrackerMixin {
         Config config = Config.getInstance();
         String lower = title.toLowerCase();
 
+        if (lower.contains("ender chest")) return false;
+
         if (config.trackChests && lower.contains("chest")) return true;
         if (config.trackBarrels && lower.contains("barrel")) return true;
         return config.trackShulkerBoxes && (lower.contains("shulker") || lower.contains("box"));
