@@ -140,8 +140,8 @@ public abstract class ChestTrackerMixin {
                     obj.addProperty("count", stack.getCount());
 
                     var enchants = stack.getEnchantments();
-                    if (!enchants.isEmpty()) {
-                        obj.addProperty("enchants", enchants.toString());
+                    if (enchants != null && !enchants.isEmpty()) {
+                        obj.addProperty("enchants", enchants.asString());
                     } else {
                         obj.addProperty("enchants", "");
                     }

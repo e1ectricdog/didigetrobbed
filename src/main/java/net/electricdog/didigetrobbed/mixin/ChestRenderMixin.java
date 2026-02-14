@@ -332,7 +332,8 @@ public abstract class ChestRenderMixin {
                     int missingCount = savedCount - amountInPool;
                     currentPool.put(savedIdentity, 0);
 
-                    Identifier itemIdentifier = Identifier.of(savedItemId);
+                    Identifier itemIdentifier = new Identifier(savedItemId);
+
                     ItemStack ghostStack = new ItemStack(Registries.ITEM.get(itemIdentifier), missingCount);
 
                     StringBuilder reportLine = new StringBuilder("§c- ").append(missingCount).append("x ").append(ghostStack.getName().getString());
@@ -366,7 +367,7 @@ public abstract class ChestRenderMixin {
             return "";
         }
 
-        Pattern pattern = Pattern.compile("minecraft:enchantment\\s*/\\s*minecraft:([a-z_]+)\\].*?=>?(\\d+)");
+        Pattern pattern = Pattern.compile("id:\"minecraft:([a-z_]+)\",lvl:(\\d+)");
         Matcher matcher = pattern.matcher(enchantsString);
 
         List<String> formattedEnchants = new ArrayList<>();
@@ -381,24 +382,7 @@ public abstract class ChestRenderMixin {
             formattedEnchants.add(readableName + " " + readableLevel);
         }
 
-        if (formattedEnchants.isEmpty()) {
-            Pattern oldPattern = Pattern.compile("minecraft:([a-z_]+)=(\\d+)");
-            Matcher oldMatcher = oldPattern.matcher(enchantsString);
-
-            while (oldMatcher.find()) {
-                String enchantName = oldMatcher.group(1);
-                String level = oldMatcher.group(2);
-
-                String readableName = didigetrobbed$toTitleCase(enchantName);
-                String readableLevel = didigetrobbed$toRomanNumeral(Integer.parseInt(level));
-
-                formattedEnchants.add(readableName + " " + readableLevel);
-            }
-        }
-
-        if (formattedEnchants.isEmpty()) {
-            return "";
-        }
+        if (formattedEnchants.isEmpty()) return "";
 
         return "(" + String.join(", ", formattedEnchants) + ")";
     }
@@ -443,11 +427,11 @@ public abstract class ChestRenderMixin {
         String id = Registries.ITEM.getId(stack.getItem()).toString();
         var enchants = stack.getEnchantments();
 
-        if (enchants.isEmpty()) {
+        if (enchants == null || enchants.isEmpty()) {
             return id;
         }
 
-        return id + enchants.toString();
+        return id + enchants.asString();
     }
 
     @Unique
