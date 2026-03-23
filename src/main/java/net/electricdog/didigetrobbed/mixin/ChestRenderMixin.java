@@ -104,6 +104,8 @@ public abstract class ChestRenderMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.isInSingleplayer()) return;
         if (!didigetrobbed$hasChecked && didigetrobbed$currentChestPos != null && didigetrobbed$isTracking) {
             didigetrobbed$ticksWaited++;
 
@@ -152,6 +154,8 @@ public abstract class ChestRenderMixin {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.isInSingleplayer()) return;
         if (didigetrobbed$currentChestPos == null) return;
 
         int containerSlots = handler.slots.size() - 36;
