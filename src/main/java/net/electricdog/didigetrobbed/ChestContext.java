@@ -15,4 +15,10 @@ public final class ChestContext {
     }
 
     private ChestContext() {}
+
+    private static String currentRealmsId = null;
+
+    public static void setCurrentRealmsId(String id) { currentRealmsId = id; }
+
+    public static String getCurrentRealmsId() { return currentRealmsId; }
 }
