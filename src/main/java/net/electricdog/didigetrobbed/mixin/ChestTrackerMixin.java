@@ -18,14 +18,9 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import net.minecraft.util.WorldSavePath;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.math.BigInteger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
 
 @Mixin(HandledScreen.class)
 public abstract class ChestTrackerMixin {
@@ -62,6 +57,7 @@ public abstract class ChestTrackerMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return false;
             if (!Files.exists(file)) return Config.getInstance().trackAllChestsByDefault;
 
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
@@ -94,6 +90,7 @@ public abstract class ChestTrackerMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return;
             if (file.getParent() != null) Files.createDirectories(file.getParent());
 
             JsonObject root;
@@ -185,8 +182,8 @@ public abstract class ChestTrackerMixin {
 
     @Unique
     private Path didigetrobbed$getStoragePath(MinecraftClient client) {
-        if (client.isInSingleplayer() && client.getServer() != null) {
-            return client.getServer().getSavePath(WorldSavePath.ROOT).resolve("didigetrobbed").resolve("chests.json");
+        if (client.isInSingleplayer()) {
+            return null;
         }
 
         if (client.getNetworkHandler() != null && client.world != null) {
@@ -221,21 +218,27 @@ public abstract class ChestTrackerMixin {
                 } else {
 
                     java.net.SocketAddress socketAddress = client.getNetworkHandler().getConnection().getAddress();
-                    String address = (socketAddress instanceof java.net.InetSocketAddress inetAddress) ? inetAddress.getHostString() : socketAddress.toString();
+                    String address = (socketAddress instanceof java.net.InetSocketAddress inetAddress)
+                            ? inetAddress.getHostString()
+                            : socketAddress.toString();
+
                     serverUid = address.replaceAll("[^a-zA-Z0-9._-]", "_");
                 }
 
                 String worldName = client.world.getRegistryKey().getValue().toString().replace(":", "@@");
-                return client.runDirectory.toPath().resolve("didigetrobbed").resolve("multiplayer").resolve(serverUid).resolve(worldName + ".json");
+                return client.runDirectory.toPath()
+                        .resolve("didigetrobbed")
+                        .resolve("multiplayer")
+                        .resolve(serverUid)
+                        .resolve(worldName + ".json");
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        return client.runDirectory.toPath().resolve("didigetrobbed").resolve("chests_local.json");
+        return null;
     }
-
 
     @Unique
     private boolean didigetrobbed$isStorageContainer(String title) {

@@ -195,6 +195,7 @@ public abstract class ChestRenderMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return false;
             if (!Files.exists(file)) return Config.getInstance().trackAllChestsByDefault;
 
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
@@ -225,6 +226,7 @@ public abstract class ChestRenderMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return;
             if (file.getParent() != null) Files.createDirectories(file.getParent());
 
             JsonObject root;
@@ -272,6 +274,7 @@ public abstract class ChestRenderMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return missingItems;
             if (!Files.exists(file)) return missingItems;
 
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
@@ -458,8 +461,8 @@ public abstract class ChestRenderMixin {
 
     @Unique
     private Path didigetrobbed$getStoragePath(MinecraftClient client) {
-        if (client.isInSingleplayer() && client.getServer() != null) {
-            return client.getServer().getSavePath(WorldSavePath.ROOT).resolve("didigetrobbed").resolve("chests.json");
+        if (client.isInSingleplayer()) {
+            return null;
         }
 
         if (client.getNetworkHandler() != null && client.world != null) {
@@ -494,19 +497,26 @@ public abstract class ChestRenderMixin {
                 } else {
 
                     java.net.SocketAddress socketAddress = client.getNetworkHandler().getConnection().getAddress();
-                    String address = (socketAddress instanceof java.net.InetSocketAddress inetAddress) ? inetAddress.getHostString() : socketAddress.toString();
+                    String address = (socketAddress instanceof java.net.InetSocketAddress inetAddress)
+                            ? inetAddress.getHostString()
+                            : socketAddress.toString();
+
                     serverUid = address.replaceAll("[^a-zA-Z0-9._-]", "_");
                 }
 
                 String worldName = client.world.getRegistryKey().getValue().toString().replace(":", "@@");
-                return client.runDirectory.toPath().resolve("didigetrobbed").resolve("multiplayer").resolve(serverUid).resolve(worldName + ".json");
+                return client.runDirectory.toPath()
+                        .resolve("didigetrobbed")
+                        .resolve("multiplayer")
+                        .resolve(serverUid)
+                        .resolve(worldName + ".json");
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        return client.runDirectory.toPath().resolve("didigetrobbed").resolve("chests_local.json");
+        return null;
     }
 
 
