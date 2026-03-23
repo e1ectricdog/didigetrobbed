@@ -32,10 +32,7 @@ import java.math.BigInteger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -106,6 +103,8 @@ public abstract class ChestRenderMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.isInSingleplayer()) return;
         if (!didigetrobbed$hasChecked && didigetrobbed$currentChestPos != null && didigetrobbed$isTracking) {
             didigetrobbed$ticksWaited++;
 
@@ -157,6 +156,8 @@ public abstract class ChestRenderMixin {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.isInSingleplayer()) return;
         if (didigetrobbed$currentChestPos == null) return;
 
         int containerSlots = handler.slots.size() - 36;
@@ -200,6 +201,7 @@ public abstract class ChestRenderMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return false;
             if (!Files.exists(file)) return Config.getInstance().trackAllChestsByDefault;
 
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
@@ -230,6 +232,7 @@ public abstract class ChestRenderMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return;
             if (file.getParent() != null) Files.createDirectories(file.getParent());
 
             JsonObject root;
@@ -277,6 +280,7 @@ public abstract class ChestRenderMixin {
 
         try {
             Path file = didigetrobbed$getStoragePath(client);
+            if (file == null) return missingItems;
             if (!Files.exists(file)) return missingItems;
 
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
@@ -451,42 +455,76 @@ public abstract class ChestRenderMixin {
     }
 
     @Unique
+    private String didigetrobbed$legacyHash(String address) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(address.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return new java.math.BigInteger(1, hash).toString(36).substring(0, 13);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Unique
     private Path didigetrobbed$getStoragePath(MinecraftClient client) {
-        if (client.isInSingleplayer() && client.getServer() != null) {
-            return client.getServer()
-                    .getSavePath(WorldSavePath.ROOT)
-                    .resolve("didigetrobbed")
-                    .resolve("chests.json");
+        if (client.isInSingleplayer()) {
+            return null;
         }
 
         if (client.getNetworkHandler() != null && client.world != null) {
             try {
-                String address = "";
-                if (client.getCurrentServerEntry() != null) {
-                    address = client.getCurrentServerEntry().address;
+                String serverUid;
+
+                if (client.getCurrentServerEntry() != null && client.getCurrentServerEntry().isRealm()) {
+                    String ownerUUID = ChestContext.getCurrentRealmsId();
+
+                    if (ownerUUID != null) {
+                        serverUid = "realms__" + ownerUUID.replaceAll("[^a-zA-Z0-9._-]", "_");
+                    } else {
+                        serverUid = "realms__unknown";
+                    }
+                } else if (client.getCurrentServerEntry() != null) {
+
+                    String address = client.getCurrentServerEntry().address;
+                    serverUid = address.replaceAll("[^a-zA-Z0-9._-]", "_");
+
+                    String legacyHash = didigetrobbed$legacyHash(address);
+                    if (legacyHash != null) {
+                        Path oldDir = client.runDirectory.toPath().resolve("didigetrobbed").resolve("multiplayer").resolve(legacyHash);
+                        Path newDir = client.runDirectory.toPath().resolve("didigetrobbed").resolve("multiplayer").resolve(serverUid);
+                        if (Files.exists(oldDir) && !Files.exists(newDir)) {
+                            try {
+                                Files.move(oldDir, newDir);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 } else {
-                    address = client.getNetworkHandler().getConnection().getAddress().toString();
+
+                    java.net.SocketAddress socketAddress = client.getNetworkHandler().getConnection().getAddress();
+                    String address = (socketAddress instanceof java.net.InetSocketAddress inetAddress)
+                            ? inetAddress.getHostString()
+                            : socketAddress.toString();
+
+                    serverUid = address.replaceAll("[^a-zA-Z0-9._-]", "_");
                 }
 
-                MessageDigest md = MessageDigest.getInstance("SHA-256");
-                byte[] hash = md.digest(address.getBytes(StandardCharsets.UTF_8));
-                String serverUid = new BigInteger(1, hash).toString(36).substring(0, 13);
-
                 String worldName = client.world.getRegistryKey().getValue().toString().replace(":", "@@");
-
                 return client.runDirectory.toPath()
                         .resolve("didigetrobbed")
                         .resolve("multiplayer")
                         .resolve(serverUid)
                         .resolve(worldName + ".json");
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        return client.runDirectory.toPath()
-                .resolve("didigetrobbed")
-                .resolve("chests_local.json");
+
+        return null;
     }
+
 
     @Unique
     private boolean didigetrobbed$isStorageContainer(String title) {

@@ -4,8 +4,9 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ChestInteractMixin",
+    "ChestRenderMixin",
     "ChestTrackerMixin",
-    "ChestRenderMixin"
+    "RealmsJoinMixin"
   ],
   "injectors": {
     "defaultRequire": 1
