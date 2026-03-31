@@ -12,7 +12,7 @@ public class Config {
 
     public boolean trackChests = true;
     public boolean trackBarrels = true;
-    public boolean trackShulkerBoxes = true;
+    public boolean trackShulkerBoxes = false;
     public boolean trackAllChestsByDefault = true;
 
     public static Config getInstance() {
