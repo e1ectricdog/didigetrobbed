@@ -60,6 +60,9 @@ public abstract class ChestRenderMixin {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void onScreenInit(CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.isLocalServer()) return;
+
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
         String title = screen.getTitle().getString();
 

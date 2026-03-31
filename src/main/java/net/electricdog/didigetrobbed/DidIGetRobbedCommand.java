@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
@@ -69,6 +70,16 @@ public class DidIGetRobbedCommand {
     }
 
     private static void showCurrentSettings(CommandContext<FabricClientCommandSource> context) {
+        if (Minecraft.getInstance().isLocalServer()) {
+            context.getSource().sendFeedback(
+                    Component.literal("[DidIGetRobbed] ")
+                            .withStyle(ChatFormatting.GOLD)
+                            .append(Component.literal("This mod only works on multiplayer or realms. Downgrade to <=1.21.11 1.4.0 if you want singleplayer support.")
+                                    .withStyle(ChatFormatting.RED))
+            );
+            return;
+        }
+
         Config config = Config.getInstance();
 
         context.getSource().sendFeedback(

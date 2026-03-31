@@ -30,6 +30,9 @@ public abstract class ChestTrackerMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onContainerClose(CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.isLocalServer()) return;
+
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
 
         String title = screen.getTitle().getString();
